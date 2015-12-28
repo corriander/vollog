@@ -30,3 +30,18 @@ the concept to data and/or arbitrary directories.
 
 \* The theory after da42817 is that ramlog also needs a
 `--make-private` mount option somewhere now.
+
+
+Install
+-------
+
+	./install.sh
+
+
+Configuration
+-------
+
+There is an override (30M) for the filesystem size (16M) in
+`/etc/default/vollog` as I found this was almost full immediately.
+Change this at will...
+
