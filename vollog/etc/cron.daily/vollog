@@ -1,0 +1,5 @@
+#!/bin/sh
+
+[ -x /etc/init.d/vollog ] || exit 0
+[ -f /var/lock/vollog.lock ] || exit 0
+/etc/init.d/vollog reload

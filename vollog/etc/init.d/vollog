@@ -1,6 +1,6 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides: 			transientlog
+# Provides: 			vollog
 # Required-Start:		
 # Required-Stop:		
 # X-Start-Before:		$syslog
