@@ -16,7 +16,7 @@ SRC_PATH=$(cd "$(dirname $0)"; pwd)
 
 install_cpt () {
 	relpath=$1
-	cp $SRC_PATH/$relpath /$relpath \
+	cp -p $SRC_PATH/$relpath /$relpath \
 		&& echo "Installed /$relpath" \
 		|| echo "Failed to install /$relpath"
 }
@@ -27,3 +27,6 @@ install () {
 }
 
 install
+
+insserv vollog
+update-rc.d vollog defaults
