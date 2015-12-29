@@ -146,6 +146,10 @@ do_reload() {
 # --------------------------------------------------------------------
 # Handle service API
 # --------------------------------------------------------------------
+local_log_end_msg () {
+	[ "$VERBOSE" != no ] && log_end_msg $1
+}
+
 case "$1" in
   start)
 	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
@@ -153,11 +157,11 @@ case "$1" in
 	case "$?" in
 		0|1) 
 			exit_status=0
-			[ "$VERBOSE" != no ] && log_end_msg $exit_status 
+			local_log_end_msg $exit_status
 			;;
 		2) 	
 			exit_status=1
-			[ "$VERBOSE" != no ] && log_end_msg $exit_status 
+			local_log_end_msg $exit_status
 			;;
 	esac
 	;;
@@ -168,11 +172,11 @@ case "$1" in
 	case "$?" in
 		0|1) 
 			exit_status=0
-			[ "$VERBOSE" != no ] && log_end_msg $exit_status 
+			local_log_end_msg $exit_status
 			;;
 		2) 	
 			exit_status=1
-			[ "$VERBOSE" != no ] && log_end_msg $exit_status 
+			local_log_end_msg $exit_status
 			;;
 	esac
 	;;
