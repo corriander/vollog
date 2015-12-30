@@ -25,9 +25,15 @@ install () {
 	install_cpt etc/init.d/vollog 
 	install_cpt etc/cron.daily/vollog
 	install_cpt etc/default/vollog
+
+	install_cpt etc/init.d/voldata 
+	install_cpt etc/cron.daily/voldata
+	install_cpt etc/default/voldata
 }
 
 install
 
 insserv vollog
+insserv voldata
 update-rc.d vollog defaults
+update-rc.d voldata defaults
