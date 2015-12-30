@@ -1,0 +1,200 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: 			voldata
+# Required-Start:		
+# Required-Stop:		
+# X-Start-Before:		$syslog
+# X-Stop-After:			$syslog
+# X-Interactive:		yes
+# Default-Start:		2 3 4 5
+# Default-Stop:			0 1 6
+# Short-Description:	Keeps /var/data in RAM
+# Description: 			Moves the contents of /var/data to RAM during 
+#						boot and keeps it there until shutdown/reboot,
+#						when it copies the contents back to permanent 
+#						storage.
+### END INIT INFO
+
+# Version 1.0
+# Author: Alex Corrie <ajccode@gmail.com>
+#
+# Derived from transientlog by Matteo Cortese.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+NAME=voldata
+DESC="Store /var/data in RAM"
+LOCKFILE=/var/lock/$NAME.lock
+DATA=/var/data
+SIZE=100M
+MODE=0755
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+if [ -z "$DATAPERM" ]; then
+	DATAPERM="${DATA}.static"
+fi
+
+
+do_start()
+{
+	# Return
+	#   0 if volatile data storage was activated
+	#   1 if volatile data storage was already activated
+	#   2 if volatile data storage could not be activated
+
+	[ -f $LOCKFILE ] && return 1
+	
+	# Check if I'm root
+	[ `id -u` -eq 0 ] || return 2
+
+	# If DATA does not exist?
+	[ -d $DATA ] || return 2
+
+	# DATAPERM either does not exist (first invocation)
+	# or is empty (left from previous invocation).
+	[ -d $DATAPERM ] || mkdir -p $DATAPERM || return 2
+
+	# Mount a tmpfs over DATA.
+	# The mount will shadow the current contents of DATA.
+	# So, before, make a bind mount so that looking into DATAPERM
+	# we'll see the current contents of DATA, which
+	# will not be available anymore as soon as we mount
+	# a tmpfs over it.
+	mount --bind $DATA $DATAPERM
+	mount --make-private $DATAPERM
+	mount -t tmpfs -o nosuid,noexec,nodev,mode=$MODE,size=$SIZE $NAME $DATA
+	if [ $? -eq 0 ]; then
+		# Populate the tmpfs
+		if cp -rfp $DATAPERM -T $DATA; then
+			# Success!
+			touch $LOCKFILE
+			return 0
+		fi
+
+		# Something went wrong...
+
+		# Rollback the mount
+		umount -l $DATA
+	fi
+
+	# Rollback the directory mangling
+	umount $DATAPERM
+	
+	return 2
+}
+
+do_stop() {
+	# Return
+	#   0 if daemon has been stopped
+	#   1 if daemon was already stopped
+	#   2 if daemon could not be stopped
+	#   other if a failure occurred
+
+	[ -f $LOCKFILE ] || return 1
+
+	# Check if I am root
+	[ `id -u` -eq 0 ] || return 2
+
+	# Merge back to permanent storage
+	cp -rfup $DATA -T $DATAPERM
+
+	# The following cannot fail... or can it?
+	umount -l $DATA
+	umount -l $DATAPERM
+	rm -f $LOCKFILE
+	return 0
+}
+
+do_reload() {
+	# Return
+	#   0 if transient log has been reloaded
+	#   1 if transient log was not running
+	#   2 if transient log could not be reloaded
+
+	[ -f $LOCKFILE ] || return 1
+	
+	# Check if I am root
+	[ `id -u` -eq 0 ] || return 2
+
+	# Merge back to permanent storage
+	cp -rfup $DATA -T $DATAPERM
+	touch $LOCKFILE
+	return 0
+}
+	
+
+# --------------------------------------------------------------------
+# Handle service API
+# --------------------------------------------------------------------
+local_log_end_msg () {
+	[ "$VERBOSE" != no ] && log_end_msg $1
+}
+
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) 
+			exit_status=0
+			local_log_end_msg $exit_status
+			;;
+		2) 	
+			exit_status=1
+			local_log_end_msg $exit_status
+			;;
+	esac
+	;;
+
+  stop)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	case "$?" in
+		0|1) 
+			exit_status=0
+			local_log_end_msg $exit_status
+			;;
+		2) 	
+			exit_status=1
+			local_log_end_msg $exit_status
+			;;
+	esac
+	;;
+
+  status)
+  	if [ -f $LOCKFILE ]; then
+		echo "$DESC is running"
+		exit_status=0
+	else
+		echo "$DESC is stopped"
+		exit_status=1 
+	fi
+	;;
+
+  reload)
+	log_daemon_msg "Reloading $DESC" "$NAME"
+	do_reload
+	exit_status=$?
+	log_end_msg $exit_status
+	;;
+
+  *)
+	echo "Usage: $0 {start|stop|status|reload}" >&2
+	exit_status=3
+	;;
+esac
+
+exit $exit_status
