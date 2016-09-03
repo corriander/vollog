@@ -48,7 +48,7 @@ MODE=0755
 if [ -z "$VARLOGPERM" ]; then
 	var=`dirname $VARLOG`
 	log=`basename $VARLOG`
-	VARLOGPERM="$var/permanent$log"
+	VARLOGPERM="$var/${log}.static"
 	unset var log
 fi
 
