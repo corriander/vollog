@@ -24,6 +24,7 @@ install_cpt () {
 install () {
 	install_cpt etc/init.d/vollog 
 	install_cpt etc/cron.daily/vollog
+	chmod 755 etc/cron.daily/vollog
 	install_cpt etc/default/vollog
 }
 
